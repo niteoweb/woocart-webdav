@@ -17,6 +17,7 @@ import (
 var davLocation string
 var port string
 var htpasswd string
+var reloadCMD string
 var showVersion bool
 var showDebug bool
 var reloadPHP bool
@@ -27,6 +28,7 @@ const MethodPropfind = "PROPFIND"
 func init() {
 	log, _ = zap.NewProduction()
 	flag.StringVar(&htpasswd, "htpasswd", "/var/www/etc/.credentials.list", "Path to htpasswd file")
+	flag.StringVar(&reloadCMD, "reloadcmd", "/usr/bin/pkill -o  -USR2 php-fpm", "Command to call if you want to reload php")
 	flag.StringVar(&port, "port", ":8080", "Address where to listen for connections")
 	flag.StringVar(&davLocation, "dir", "/var/www/public_html", "Location of root for WebDAV")
 	flag.BoolVar(&showVersion, "version", false, "Show build time and version")
@@ -87,11 +89,9 @@ func main() {
 	go func() {
 		for range time.Tick(time.Second * 5) {
 			if reloadPHP {
-				cmd := exec.Command("pkill", "-o", "-USR2", "php-fpm")
-				err := cmd.Run()
-
+				cmd := strings.Split(reloadCMD, " ")
+				err := exec.Command(cmd[0], cmd[1:]...).Run()
 				log.Info("Reloading PHP", zap.Error(err))
-
 				reloadPHP = false
 			}
 		}
