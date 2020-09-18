@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/subtle"
 	"flag"
 	"net/http"
 	"os"
@@ -10,14 +9,14 @@ import (
 	"time"
 	"woocart-webdav/version"
 
+	auth "github.com/abbot/go-http-auth"
 	"go.uber.org/zap"
 	"golang.org/x/net/webdav"
 )
 
 var davLocation string
 var port string
-var username string
-var password string
+var htdigest string
 var showVersion bool
 var showDebug bool
 var reloadPHP bool
@@ -27,8 +26,7 @@ const MethodPropfind = "PROPFIND"
 
 func init() {
 	log, _ = zap.NewProduction()
-	flag.StringVar(&username, "user", "admin", "Username")
-	flag.StringVar(&password, "password", "secret", "Password")
+	flag.StringVar(&htdigest, "htdigest", "/var/www/etc/secret", "PAth to htdigest file")
 	flag.StringVar(&port, "port", ":8080", "Address where to listen for connections")
 	flag.StringVar(&davLocation, "dir", "/var/www/public_html", "Location of root for WebDAV")
 	flag.BoolVar(&showVersion, "version", false, "Show build time and version")
@@ -37,24 +35,20 @@ func init() {
 
 // BasicAuth wraps a handler requiring HTTP basic auth for it using the given
 // username and password and the specified realm, which shouldn't contain quotes.
-func BasicAuth(h http.Handler) http.Handler {
+func BasicAuth(h http.Handler, a *auth.BasicAuth) http.Handler {
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		user, pass, ok := r.BasicAuth()
-		if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(password)) != 1 {
-			w.Header().Set("WWW-Authenticate", `Basic realm="WebDAV Login"`)
-			log.Error("Wrong Password", zap.String("user", user))
-			http.Error(w, "Not authorized", 401)
-			return
+		if username := a.CheckAuth(r); username == "" {
+			a.RequireAuth(w, r)
+		} else {
+			h.ServeHTTP(w, r)
 		}
-
-		h.ServeHTTP(w, r) // call original
-
 	})
 }
 
 // PHPReloader wraps a handler that signals PHP needs Reloading
 func PHPReloader(h http.Handler) http.Handler {
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != MethodPropfind {
 			log.Info(r.Method, zap.String("path", r.URL.Path))
@@ -80,12 +74,15 @@ func main() {
 		os.Exit(0)
 	}
 
+	secret := auth.HtdigestFileProvider(htdigest)
+	authenticator := auth.NewBasicAuthenticator("WebDAV Server", secret)
+
 	webdavSrv := &webdav.Handler{
 		FileSystem: webdav.Dir(davLocation),
 		LockSystem: webdav.NewMemLS(),
 	}
 
-	http.Handle("/", BasicAuth(PHPReloader(webdavSrv)))
+	http.Handle("/", BasicAuth(PHPReloader(webdavSrv), authenticator))
 
 	go func() {
 		for range time.Tick(time.Second * 5) {
