@@ -1,6 +1,6 @@
 VERSION := 1.0.2
-CLIPKG := woocart-webdav/cmd/webdav
 PKG := woocart-webdav
+CLIPKG := $(PKG)/cmd/webdav
 COMMIT := $(shell git rev-parse HEAD)
 BUILD_TIME := $(shell date -u +%FT%T)
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
@@ -47,12 +47,11 @@ clean:
 	find src/* -maxdepth 0 ! -name '$(PKG)' -type d | xargs rm -rf
 	rm -rf src/$(PKG)/vendor/
 
-lint: bin/golangci-lint
-	bin/golangci-lint run
-	go fmt
+lint:
+	go fmt $(CLIPKG)
 
-test: lint cover
-	go test -v -race
+test: lint
+	go test -v -race $(CLIPKG)
 
 cover: bin/gocov
 	bin/gocov test | bin/gocov report

@@ -26,7 +26,7 @@ const MethodPropfind = "PROPFIND"
 
 func init() {
 	log, _ = zap.NewProduction()
-	flag.StringVar(&htdigest, "htdigest", "/var/www/etc/secret", "Path to htdigest file")
+	flag.StringVar(&htdigest, "htdigest", "/var/www/etc/.credentials.list", "Path to htdigest file")
 	flag.StringVar(&port, "port", ":8080", "Address where to listen for connections")
 	flag.StringVar(&davLocation, "dir", "/var/www/public_html", "Location of root for WebDAV")
 	flag.BoolVar(&showVersion, "version", false, "Show build time and version")
