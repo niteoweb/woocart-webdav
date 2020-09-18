@@ -16,7 +16,7 @@ import (
 
 var davLocation string
 var port string
-var htdigest string
+var htpasswd string
 var showVersion bool
 var showDebug bool
 var reloadPHP bool
@@ -26,7 +26,7 @@ const MethodPropfind = "PROPFIND"
 
 func init() {
 	log, _ = zap.NewProduction()
-	flag.StringVar(&htdigest, "htdigest", "/var/www/etc/.credentials.list", "Path to htdigest file")
+	flag.StringVar(&htpasswd, "htpasswd", "/var/www/etc/.credentials.list", "Path to htpasswd file")
 	flag.StringVar(&port, "port", ":8080", "Address where to listen for connections")
 	flag.StringVar(&davLocation, "dir", "/var/www/public_html", "Location of root for WebDAV")
 	flag.BoolVar(&showVersion, "version", false, "Show build time and version")
@@ -74,7 +74,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	secret := auth.HtdigestFileProvider(htdigest)
+	secret := auth.HtpasswdFileProvider(htpasswd)
 	authenticator := auth.NewBasicAuthenticator("WebDAV Server", secret)
 
 	webdavSrv := &webdav.Handler{

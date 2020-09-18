@@ -1,4 +1,4 @@
-VERSION := 1.0.2
+VERSION := 1.0.3
 PKG := woocart-webdav
 CLIPKG := $(PKG)/cmd/webdav
 COMMIT := $(shell git rev-parse HEAD)
@@ -59,7 +59,7 @@ cover: bin/gocov
 all: build test
 
 run:
-	./webdav-Linux-x86_64 -dir .
+	./webdav-Linux-x86_64 -dir . -htdigest secret
 
 release:
 	git stash
