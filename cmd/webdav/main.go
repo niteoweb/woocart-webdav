@@ -9,9 +9,10 @@ import (
 	"time"
 	"woocart-webdav/version"
 
+	"woocart-webdav/webdav"
+
 	auth "github.com/abbot/go-http-auth"
 	"go.uber.org/zap"
-	"golang.org/x/net/webdav"
 )
 
 var davLocation string
