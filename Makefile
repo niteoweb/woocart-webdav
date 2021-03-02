@@ -1,4 +1,4 @@
-VERSION := 1.1.0
+VERSION := 1.2.0
 PKG := woocart-webdav
 CLIPKG := $(PKG)/cmd/webdav
 COMMIT := $(shell git rev-parse HEAD)

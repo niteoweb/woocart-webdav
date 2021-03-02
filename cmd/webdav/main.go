@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
+	"runtime"
 	"strings"
 	"time"
 	"woocart-webdav/version"
@@ -65,7 +67,22 @@ func PHPReloader(h http.Handler) http.Handler {
 	})
 }
 
+// MKDIR wraps a handler that creates folder to a file on PUT
+// USed for faster curl uploads
+func MKDIR(h http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPut {
+			if strings.Contains(r.UserAgent(), "curl+mkdir") {
+				os.MkdirAll(path.Dir(davLocation+r.URL.Path), 0755)
+			}
+		}
+		h.ServeHTTP(w, r) // call original
+	})
+}
+
 func main() {
+	runtime.GOMAXPROCS(1)
 	flag.Parse()
 
 	if showDebug {
@@ -85,7 +102,7 @@ func main() {
 		LockSystem: webdav.NewMemLS(),
 	}
 
-	http.Handle("/", BasicAuth(PHPReloader(webdavSrv), authenticator))
+	http.Handle("/", BasicAuth(MKDIR(PHPReloader(webdavSrv)), authenticator))
 
 	go func() {
 		for range time.Tick(time.Second * 5) {
